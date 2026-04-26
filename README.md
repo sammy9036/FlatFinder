@@ -1,6 +1,5 @@
----
 
-# 🏠 FlatFinder – Broker-Free Rental Platform
+🏠 FlatFinder – Broker-Free Rental Platform
 
 > A full-stack web application that connects flat owners and seekers directly — eliminating brokers, reducing friction, and improving listing quality through admin control.
 
