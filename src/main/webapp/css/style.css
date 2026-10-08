@@ -1864,6 +1864,11 @@ a:hover {
     color: var(--success-color);
 }
 
+.inquiry-status-badge.rejected {
+    background: rgba(231, 76, 60, 0.15);
+    color: var(--danger-color);
+}
+
 .inquiry-date {
     display: inline-flex;
     align-items: center;

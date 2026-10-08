@@ -3,6 +3,7 @@ package com.flatfinder.controller;
 import com.flatfinder.model.Inquiry;
 import com.flatfinder.model.Property;
 import com.flatfinder.model.User;
+import com.flatfinder.model.UserRole;
 import com.flatfinder.service.InquiryService;
 import com.flatfinder.service.PropertyService;
 import com.flatfinder.service.UserService;
@@ -95,6 +96,65 @@ public class InquiryController {
         return "redirect:/property/details/" + propertyId
                 + "?status=success&message=Inquiry+submitted+successfully!+Owner+will+contact+you+soon";
     }
+
+    /**
+     * Show the dummy payment page for a seeker inquiry.
+     */
+    @GetMapping("/payment/{inquiryId}")
+    public String paymentPage(@PathVariable Long inquiryId,
+                              HttpSession session,
+                              Model model) {
+
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return "redirect:/auth/login";
+        }
+
+        Inquiry inquiry = inquiryService.getInquiryById(inquiryId);
+        if (inquiry == null || !user.getId().equals(inquiry.getUserId())) {
+            return "redirect:/inquiry/my-inquiries";
+        }
+
+        Property property = propertyService.getPropertyById(inquiry.getPropertyId());
+        if (property == null) {
+            return "redirect:/inquiry/my-inquiries";
+        }
+
+        String status = inquiry.getStatus() != null ? inquiry.getStatus().trim().toUpperCase() : "PENDING";
+        model.addAttribute("property", property);
+        model.addAttribute("owner", userService.getUserById(property.getOwnerId()));
+        model.addAttribute("inquiry", inquiry);
+        model.addAttribute("paymentAmount", property.getPrice() != null ? property.getPrice() : 1000.0);
+        model.addAttribute("paymentReference", "DUMMY-" + inquiryId + "-" + System.currentTimeMillis());
+        model.addAttribute("paymentAllowed", "CONTACTED".equals(status));
+        return "seeker/payment";
+    }
+
+    /**
+     * Confirm dummy payment and mark inquiry as resolved.
+     */
+    @PostMapping("/payment/confirm/{inquiryId}")
+    public String confirmPayment(@PathVariable Long inquiryId,
+                                 HttpSession session) {
+
+        User user = (User) session.getAttribute("user");
+        if (user == null) {
+            return "redirect:/auth/login";
+        }
+
+        Inquiry inquiry = inquiryService.getInquiryById(inquiryId);
+        if (inquiry == null || !user.getId().equals(inquiry.getUserId())) {
+            return "redirect:/inquiry/my-inquiries";
+        }
+
+        String status = inquiry.getStatus() != null ? inquiry.getStatus().trim().toUpperCase() : "PENDING";
+        if (!"CONTACTED".equals(status)) {
+            return "redirect:/inquiry/my-inquiries";
+        }
+
+        inquiryService.updateInquiryStatus(inquiryId, "RESOLVED");
+        return "redirect:/inquiry/my-inquiries?paymentStatus=success&paymentMessage=Dummy+payment+completed+successfully";
+    }
     
     /**
      * Get all inquiries by a seeker
@@ -156,11 +216,31 @@ public class InquiryController {
                                      HttpSession session) {
         
         User user = (User) session.getAttribute("user");
-        if (user == null) {
+        if (user == null || (user.getRole() != UserRole.OWNER && user.getRole() != UserRole.ADMIN)) {
             return "redirect:/auth/login";
         }
+
+        Inquiry inquiry = inquiryService.getInquiryById(inquiryId);
+        if (inquiry == null) {
+            return "redirect:/inquiry/received-inquiries";
+        }
+
+        if (user.getRole() == UserRole.OWNER) {
+            Property property = propertyService.getPropertyById(inquiry.getPropertyId());
+            if (property == null || !user.getId().equals(property.getOwnerId())) {
+                return "redirect:/inquiry/received-inquiries";
+            }
+        }
         
-        inquiryService.updateInquiryStatus(inquiryId, status);
+        String normalizedStatus = status != null ? status.trim().toUpperCase() : "PENDING";
+        if (!"PENDING".equals(normalizedStatus)
+                && !"CONTACTED".equals(normalizedStatus)
+                && !"RESOLVED".equals(normalizedStatus)
+                && !"REJECTED".equals(normalizedStatus)) {
+            normalizedStatus = "PENDING";
+        }
+
+        inquiryService.updateInquiryStatus(inquiryId, normalizedStatus);
         
         return "redirect:/inquiry/received-inquiries";
     }

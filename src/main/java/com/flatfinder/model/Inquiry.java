@@ -32,7 +32,7 @@ public class Inquiry {
     
     private LocalDateTime createdAt;
     
-    private String status = "PENDING"; // PENDING, CONTACTED, RESOLVED
+    private String status = "PENDING"; // PENDING, CONTACTED, RESOLVED, REJECTED
     
     @PrePersist
     protected void onCreate() {

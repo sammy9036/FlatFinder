@@ -117,6 +117,11 @@
             color: var(--success-color);
         }
 
+        .status-pill.rejected {
+            background: rgba(231, 76, 60, 0.14);
+            color: var(--danger-color);
+        }
+
         .status-pill.default {
             background: rgba(52, 152, 219, 0.14);
             color: var(--accent-color);
@@ -128,6 +133,42 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
+        .payment-banner {
+            border-radius: 12px;
+            padding: 0.9rem 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid transparent;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .payment-banner.success {
+            background: rgba(39, 174, 96, 0.12);
+            border-color: rgba(39, 174, 96, 0.25);
+            color: var(--success-color);
+        }
+
+        .payment-banner.info {
+            background: rgba(52, 152, 219, 0.12);
+            border-color: rgba(52, 152, 219, 0.25);
+            color: var(--accent-color);
+        }
+
+        .payment-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            white-space: nowrap;
+        }
+
+        .action-note {
+            color: var(--text-light);
+            font-size: 12px;
+            margin-top: 0.35rem;
+        }
     </style>
 </head>
 <body>
@@ -135,10 +176,24 @@
 
     <div class="container inquiry-dashboard">
         <%
+            String paymentStatus = request.getParameter("paymentStatus");
+            String paymentMessage = request.getParameter("paymentMessage");
+        %>
+
+        <% if (paymentStatus != null && paymentMessage != null) { %>
+            <div class="payment-banner <%= paymentStatus %>">
+                <i class="fas <%= "success".equalsIgnoreCase(paymentStatus) ? "fa-circle-check" : "fa-circle-info" %>"></i>
+                <span><%= paymentMessage %></span>
+            </div>
+        <% } %>
+
+        <%
             List<?> inquiries = (List<?>) request.getAttribute("inquiries");
             int total = (inquiries != null) ? inquiries.size() : 0;
             int pending = 0;
+            int approved = 0;
             int resolved = 0;
+            int rejected = 0;
             if (inquiries != null) {
                 for (Object iObj : inquiries) {
                     try {
@@ -147,8 +202,14 @@
                         if ("PENDING".equalsIgnoreCase(st)) {
                             pending++;
                         }
-                        if ("RESOLVED".equalsIgnoreCase(st) || "CONTACTED".equalsIgnoreCase(st)) {
+                        if ("CONTACTED".equalsIgnoreCase(st)) {
+                            approved++;
+                        }
+                        if ("RESOLVED".equalsIgnoreCase(st)) {
                             resolved++;
+                        }
+                        if ("REJECTED".equalsIgnoreCase(st)) {
+                            rejected++;
                         }
                     } catch (Exception e) {
                         // ignore malformed row
@@ -177,7 +238,11 @@
                 <h3><%= pending %></h3>
             </div>
             <div class="summary-card">
-                <p>Contacted / Resolved</p>
+                <p>Approved for Payment</p>
+                <h3><%= approved %></h3>
+            </div>
+            <div class="summary-card">
+                <p>Completed</p>
                 <h3><%= resolved %></h3>
             </div>
         </section>
@@ -204,8 +269,9 @@
                         <%
                             for (int i = 0; i < inquiries.size(); i++) {
                                 Object inquiry = inquiries.get(i);
-                                Object propId = null, message = null, status = null, createdAt = null;
+                                Object inquiryId = null, propId = null, message = null, status = null, createdAt = null;
                                 try {
+                                    inquiryId = inquiry.getClass().getMethod("getId").invoke(inquiry);
                                     propId = inquiry.getClass().getMethod("getPropertyId").invoke(inquiry);
                                     message = inquiry.getClass().getMethod("getMessage").invoke(inquiry);
                                     status = inquiry.getClass().getMethod("getStatus").invoke(inquiry);
@@ -219,6 +285,8 @@
                                     statusClass = "pending";
                                 } else if ("CONTACTED".equalsIgnoreCase(statusText) || "RESOLVED".equalsIgnoreCase(statusText)) {
                                     statusClass = "resolved";
+                                } else if ("REJECTED".equalsIgnoreCase(statusText)) {
+                                    statusClass = "rejected";
                                 }
                         %>
                             <tr>
@@ -231,7 +299,28 @@
                                 </td>
                                 <td><%= createdAt %></td>
                                 <td>
-                                    <a href="<%= request.getContextPath() %>/property/details/<%= propId %>" class="btn btn-sm btn-secondary">View Property</a>
+                                    <%
+                                        if ("CONTACTED".equalsIgnoreCase(statusText)) {
+                                    %>
+                                        <a href="<%= request.getContextPath() %>/inquiry/payment/<%= inquiryId %>" class="btn btn-sm btn-primary payment-action">
+                                            <i class="fas fa-credit-card"></i> Pay Now
+                                        </a>
+                                        <div class="action-note">Owner approved this inquiry. Open the dummy test payment screen.</div>
+                                    <%
+                                        } else if ("RESOLVED".equalsIgnoreCase(statusText)) {
+                                    %>
+                                        <span class="action-note"><i class="fas fa-circle-check"></i> Payment completed</span>
+                                    <%
+                                        } else if ("REJECTED".equalsIgnoreCase(statusText)) {
+                                    %>
+                                        <span class="action-note"><i class="fas fa-ban"></i> Owner rejected this inquiry</span>
+                                    <%
+                                        } else {
+                                    %>
+                                        <span class="action-note"><i class="fas fa-hourglass-half"></i> Waiting for owner decision</span>
+                                    <%
+                                        }
+                                    %>
                                 </td>
                             </tr>
                         <% } %>

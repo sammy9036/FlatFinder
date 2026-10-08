@@ -22,7 +22,7 @@
                 <div>
                     <p class="inquiry-kicker">Owner Inbox</p>
                     <h1>Received Inquiries</h1>
-                    <p class="text-muted">Track new leads, update status, and reply faster.</p>
+                    <p class="text-muted">Mark an inquiry as <strong>Contacted</strong> to unlock the seeker’s dummy payment screen, or choose <strong>Rejected</strong> to stop the flow.</p>
                 </div>
                 <div class="inquiry-summary-card">
                     <i class="fas fa-envelope-open-text"></i>
@@ -85,6 +85,8 @@
                                     badgeClass = "contacted";
                                 } else if ("RESOLVED".equals(statusText)) {
                                     badgeClass = "resolved";
+                                } else if ("REJECTED".equals(statusText)) {
+                                    badgeClass = "rejected";
                                 }
                         %>
                             <tr>
@@ -112,9 +114,10 @@
                                 <td>
                                     <form method="POST" action="<%= request.getContextPath() %>/inquiry/update-status/<%= id %>">
                                         <select name="status" onchange="this.form.submit();" class="inquiry-status-select">
-                                            <option value="PENDING" <% if ("PENDING".equals(statusText)) { %>selected<% } %>>Pending</option>
-                                            <option value="CONTACTED" <% if ("CONTACTED".equals(statusText)) { %>selected<% } %>>Contacted</option>
-                                            <option value="RESOLVED" <% if ("RESOLVED".equals(statusText)) { %>selected<% } %>>Resolved</option>
+                                            <option value="PENDING" <% if ("PENDING".equals(statusText)) { %>selected<% } %>>Pending review</option>
+                                            <option value="CONTACTED" <% if ("CONTACTED".equals(statusText)) { %>selected<% } %>>Approved for payment</option>
+                                            <option value="RESOLVED" <% if ("RESOLVED".equals(statusText)) { %>selected<% } %>>Payment completed</option>
+                                            <option value="REJECTED" <% if ("REJECTED".equals(statusText)) { %>selected<% } %>>Rejected</option>
                                         </select>
                                     </form>
                                 </td>
