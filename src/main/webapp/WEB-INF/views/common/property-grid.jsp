@@ -72,15 +72,21 @@
             }
 %>
     <div class="property-card">
-        <div class="property-image-wrapper" id="image-wrapper-<%= id %>">
-            <div class="property-image-placeholder">
+        <div class="property-image-wrapper">
+            <img src="<%= request.getContextPath() %>/image/primary/<%= id %>" 
+                 alt="<%= title %>" 
+                 loading="lazy" 
+                 style="width:100%; height:100%; object-fit:cover;"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="property-image-placeholder" style="display: none;">
                 <i class="fas fa-image"></i>
             </div>
             <% if (showBadge) { %>
                 <span class="property-badge"><%= badgeText %></span>
             <% } %>
         </div>
-        
+
+
         <div class="property-info">
             <h3><%= title %></h3>
             <p class="property-location"><i class="fas fa-map-marker-alt"></i> <%= location %></p>
@@ -120,36 +126,3 @@
 %>
 </div>
 
-<script>
-    // Load property images on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        const imageWrappers = document.querySelectorAll('[id^="image-wrapper-"]');
-        
-        imageWrappers.forEach(wrapper => {
-            const id = wrapper.id.replace('image-wrapper-', '');
-            loadPropertyImage(id, wrapper);
-        });
-    });
-    
-    function loadPropertyImage(propertyId, wrapper) {
-        fetch('<%= request.getContextPath() %>/image/primary/' + propertyId)
-            .then(response => {
-                if (response.ok) {
-                    return response.blob();
-                }
-                throw new Error('No image');
-            })
-            .then(blob => {
-                const url = URL.createObjectURL(blob);
-                const badge = wrapper.querySelector('.property-badge');
-                wrapper.innerHTML = '<img src="' + url + '" alt="Property Image" style="width:100%; height:100%; object-fit:cover;">';
-                if (badge) {
-                    wrapper.appendChild(badge);
-                }
-            })
-            .catch(error => {
-                console.log('No image found for property ' + propertyId);
-                // Keep the placeholder
-            });
-    }
-</script>
